@@ -500,7 +500,7 @@ class PlanningGraph():
         # TODO test for negation between nodes
         #self.is_pos == other.is_pos and self.symbol == other.symbol)
 
-        if node_s1.is_pos == node_s2.is_pos and node_s1.symbol == node_s2.symbol:
+        if node_s1.symbol == node_s2.symbol and node_s1.is_pos != node_s2.is_pos:
             return True
 
         return False
@@ -524,9 +524,9 @@ class PlanningGraph():
         # TODO test for Inconsistent Support between nodes
         for s1p in node_s1.parents:
             for s2p in node_s2.parents:
-                if s1p.is_mutex(s2p):
-                    return True
-        return False
+                if not s1p.is_mutex(s2p):
+                    return False
+        return True
 
     def h_levelsum(self) -> int:
         """The sum of the level costs of the individual goals (admissible if goals independent)
@@ -537,10 +537,23 @@ class PlanningGraph():
         # TODO implement
         # for each goal in the problem, determine the level cost, then add them together
 
-        for goal in set(self.problem.goal):
-            for level in range(len(self.s_levels)):
-                for sNode in self.s_levels[level]:
-                    if sNode == goal:
-                        level_sum += level
+        """
+        Level cost of gi . In Figure 10.8, Have (Cake ) has level cost 0 and Eaten (Cake ) has level cost 1. 
+        It is easy to show (Exercise 10.10) that these estimates are admissible for the individual goals. 
+        The estimate might not always be accurate, however, because planning graphs allow several actions at each level, 
+        whereas the heuristic counts just the level and not the number of actions. 
+        For this reason, it is common to use a serial planning graph for computing heuristics. 
+        A serial graph insists that only one action can actually occur at any given time step; 
+        this is done by adding mutex links between every pair of nonpersistence actions. 
+        Level costs extracted from serial graphs are often quite reasonable estimates of actual costs.
+        """
+        goals = set(self.problem.goal)
+
+        for level in range(len(self.s_levels)):
+            for n in self.s_levels[level]:
+                if n.symbol in goals:
+                    level_sum += level
+                    goals.remove(n.symbol)
+                    break
 
         return level_sum
