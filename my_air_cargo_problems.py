@@ -59,6 +59,7 @@ class AirCargoProblem(Problem):
 
             :return: list of Action objects
             """
+
             loads = []
             for cargo in self.cargos:
                 for plane in self.planes:
@@ -83,9 +84,9 @@ class AirCargoProblem(Problem):
             :return: list of Action objects
             """
             unloads = []
-            for cargo in self.cargos:
+            for airport in self.airports:
                 for plane in self.planes:
-                    for airport in self.airports:
+                    for cargo in self.cargos:
 
                         precond_pos = [expr("In({}, {})".format(cargo, plane)),
                                        expr("At({}, {})".format(plane, airport))]
@@ -93,11 +94,10 @@ class AirCargoProblem(Problem):
                         effect_add = [expr("At({}, {})".format(cargo, airport))]
                         effect_rem = [expr("In({}, {})".format(cargo, plane))]
 
-                        l = Action(expr("Load({}, {}, {})".format(cargo, plane, airport)),
+                        l = Action(expr("Unload({}, {}, {})".format(cargo, plane, airport)),
                                      [precond_pos, precond_neg],
                                      [effect_add, effect_rem])
                         unloads.append(l)
-            # TODO create all Unload ground actions from the domain Unload action
             return unloads
 
         def fly_actions():
@@ -133,11 +133,16 @@ class AirCargoProblem(Problem):
         """
         # TODO implement
         possible_actions = []
-        kb = PropKB()
-        kb.tell(decode_state(state, self.state_map).pos_sentence())
-        for action in self.actions_list:
 
-            if action.check_precond(kb, action.args):
+        current_state_pos = decode_state(state, self.state_map).pos
+
+        for action in self.actions_list:
+            valid_action = True
+
+            for action_precondition in action.precond_pos:
+                if action_precondition not in current_state_pos:
+                    valid_action = False
+            if valid_action:
                 possible_actions.append(action)
 
         return possible_actions
@@ -151,7 +156,7 @@ class AirCargoProblem(Problem):
         :param action: Action applied
         :return: resulting state after action
         """
-        # TODO implement
+
         old_state = decode_state(state, self.state_map)
         new_state = FluentState([], [])
 
@@ -212,14 +217,11 @@ class AirCargoProblem(Problem):
         """
         # TODO implement (see Russell-Norvig Ed-3 10.2.3  or Russell-Norvig Ed-2 11.2)
         count = 0
-        kb = PropKB()
-        kb.tell(decode_state(node.state, self.state_map).pos_sentence())
 
-        for g in self.goal:
-            if g not in kb.clauses:
-                count += 1
+        state = set(decode_state(node.state, self.state_map).pos)
+        goals = set(self.goal)
 
-        return count
+        return len(goals - state)
 
 
 def air_cargo_p1() -> AirCargoProblem:
